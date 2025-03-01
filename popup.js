@@ -18,8 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
 					const label = tableData.header.find(text => text.trim() !== "") || `Table ${index + 1}`;
 					button.textContent = `Download ${label}`;
 					button.addEventListener("click", () => {
-						const content = format === "csv" ? tableData.csvContent : tableData.tsvContent;
-						downloadCsv(content, `table_data_${index + 1}.${format}`);
+						const content = formatTableData(tableData.data, format);
+						downloadFile(content, `table_data_${index + 1}.${format}`);
 					});
 					buttonsContainer.appendChild(button);
 				});
@@ -35,8 +35,7 @@ function extractTables() {
 		if (table.querySelector("table")) return;
 
 		const rows = table.querySelectorAll("tr");
-		const rowData = [];
-		const rowDataTsv = [];
+		const data = [];
 		let isEmptyTable = true;
 		let header = [];
 		rows.forEach((row, rowIndex) => {
@@ -45,20 +44,28 @@ function extractTables() {
 			cells.forEach((cell) => {
 				let cellText = cell.innerText.trim();
 				if (cellText) isEmptyTable = false;
-				if (cellText.includes(",")) cellText = `"${cellText}"`;
 				cellData.push(cellText);
 			});
 			if (rowIndex === 0) header = cellData;
-			rowData.push(cellData.join(","));
-			rowDataTsv.push(cellData.join("\t"));
+			data.push(cellData);
 		});
-		if (!isEmptyTable) tableData.push({ header, csvContent: rowData.join("\n"), tsvContent: rowDataTsv.join("\n") });
+		if (!isEmptyTable) tableData.push({ header, data });
 	});
 	return tableData;
 }
 
-function downloadCsv(csvContent, filename) {
-	const blob = new Blob([csvContent], { type: "text/csv" });
+function formatTableData(data, format) {
+	const delimiter = format === "csv" ? "," : "\t";
+	return data.map(row => row.map(cell => {
+		if (format === "csv" && cell.includes(",")) {
+			return `"${cell}"`;
+		}
+		return cell;
+	}).join(delimiter)).join("\n");
+}
+
+function downloadFile(content, filename) {
+	const blob = new Blob([content], { type: "text/plain" });
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement("a");
 	a.href = url;
