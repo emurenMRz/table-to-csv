@@ -6,12 +6,20 @@ document.addEventListener("DOMContentLoaded", () => {
 		}, (results) => {
 			if (results && results[0] && results[0].result) {
 				const buttonsContainer = document.getElementById("buttonsContainer");
+				const formatSwitch = document.querySelectorAll('input[name="format"]');
+				let format = "csv";
+				formatSwitch.forEach((radio) => {
+					radio.addEventListener("change", (event) => {
+						format = event.target.value;
+					});
+				});
 				results[0].result.forEach((tableData, index) => {
 					const button = document.createElement("button");
 					const label = tableData.header.find(text => text.trim() !== "") || `Table ${index + 1}`;
 					button.textContent = `Download ${label}`;
 					button.addEventListener("click", () => {
-						downloadCsv(tableData.csvContent, `table_data_${index + 1}.csv`);
+						const content = format === "csv" ? tableData.csvContent : tableData.tsvContent;
+						downloadCsv(content, `table_data_${index + 1}.${format}`);
 					});
 					buttonsContainer.appendChild(button);
 				});
@@ -28,6 +36,7 @@ function extractTables() {
 
 		const rows = table.querySelectorAll("tr");
 		const rowData = [];
+		const rowDataTsv = [];
 		let isEmptyTable = true;
 		let header = [];
 		rows.forEach((row, rowIndex) => {
@@ -41,8 +50,9 @@ function extractTables() {
 			});
 			if (rowIndex === 0) header = cellData;
 			rowData.push(cellData.join(","));
+			rowDataTsv.push(cellData.join("\t"));
 		});
-		if (!isEmptyTable) tableData.push({ header, csvContent: rowData.join("\n") });
+		if (!isEmptyTable) tableData.push({ header, csvContent: rowData.join("\n"), tsvContent: rowDataTsv.join("\n") });
 	});
 	return tableData;
 }
